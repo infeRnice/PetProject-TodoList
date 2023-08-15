@@ -75,7 +75,7 @@ class TodoAdapter(private val viewModel: TodoViewModel) : ListAdapter<TodoItem, 
                 setOnCheckedChangeListener { _, isChecked ->
                     updateTextViewAppearance(isChecked, tvTodoText)
                     // При изменении состояния чекбокса, меняем дроубл
-                    setButtonDrawable(if (isChecked) R.drawable.property1checkboxproperty2checked else android.R.drawable.checkbox_off_background)
+
 
                     val updatedItem = item.copy(isDone = isChecked)  //Update item status
                     viewModel.updateTodoItem(updatedItem)
