@@ -2,4 +2,15 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="colorPrimary">#FFFFFF</color> <!-- Main color of your app -->
+    <color name="colorPrimaryDark">#E0E0E0</color> <!-- Dark variant of your main color -->
+    <color name="colorOnPrimary">#000000</color> <!-- Color of text and icons on top of your main color -->
+    <color name="colorSecondary">#9E9E9E</color> <!-- Secondary color of your app -->
+    <color name="colorSecondaryDark">#757575</color> <!-- Dark variant of your secondary color -->
+    <color name="colorOnSecondary">#FFFFFF</color> <!-- Color of text and icons on top of your secondary color -->
+    <color name="colorError">#B00020</color> <!-- Color for error states -->
+    <color name="colorGreen">#00FF00</color>  <!-- Replace with your desired shade of green -->
+    <color name="colorGray">#CCCCCC</color>  <!-- Replace with your desired shade of gray -->
+    <!-- ... other colors for your app -->
+
 </resources>
