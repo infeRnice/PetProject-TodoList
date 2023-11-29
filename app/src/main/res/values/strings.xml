@@ -4,6 +4,11 @@
     <string name="add_todo_description">Add something to do</string>
     <string name="close_button">Close button</string>
     <string name="priority_label">Priority of the task</string>
+    <string name="save">SAVE</string>
+    <string name="description_hint">Description</string>
+    <string name="do_before">Do before</string>
+    <string name="delete_button">Delete</string>
+    <string name="sign_in_with_google">Sign In with Google</string>
     <string-array name="priority_array">
         <item>Low</item>
         <item>Medium</item>

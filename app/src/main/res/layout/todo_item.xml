@@ -6,11 +6,11 @@
     android:gravity="center_vertical"
     android:padding="8dp">
 
-    <CheckBox
+    <androidx.appcompat.widget.AppCompatCheckBox
         android:id="@+id/checkBox"
+        style="@style/MyCheckBoxStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        style="@style/MyCheckBoxStyle"
         />
 
     <TextView

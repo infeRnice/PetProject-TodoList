@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
@@ -26,10 +25,10 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="start"
                 android:background="?attr/selectableItemBackground"
-                android:src="@drawable/ic_close"
                 android:contentDescription="@string/close_button"
                 android:minWidth="48dp"
-                android:minHeight="48dp"/>
+                android:minHeight="48dp"
+                android:src="@drawable/ic_close" />
 
             <Button
                 android:id="@+id/btn_Save"
@@ -37,9 +36,9 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:background="?attr/selectableItemBackground"
-                android:text="save"
                 android:minWidth="48dp"
-                android:minHeight="48dp"/>
+                android:minHeight="48dp"
+                android:text="@string/save" />
 
         </androidx.appcompat.widget.Toolbar>
 
@@ -47,46 +46,49 @@
             android:id="@+id/et_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:hint="@string/description_hint"
             android:minHeight="48dp"
-            android:hint="Description" />
+            android:autofillHints="description"
+            android:inputType="text"/>
 
-        <Switch
+
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchDeadline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
             android:minWidth="96dp"
-            android:text="Do before" />
+            android:minHeight="48dp"
+            android:text="@string/do_before" />
 
         <TextView
             android:id="@+id/deadlineText"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:text="@string/priority_label"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginBottom="8dp" />
+            android:textColor="@android:color/darker_gray" />
 
         <Spinner
             android:id="@+id/spinnerImportance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:entries="@array/importance_array"/>
+            android:entries="@array/importance_array"
+            android:minHeight="48dp" />
 
         <ImageButton
             android:id="@+id/btn_delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/delete_icon"
             android:background="?android:attr/selectableItemBackground"
-            android:padding="0dp"
+            android:contentDescription="@string/delete_button"
             android:minWidth="48dp"
             android:minHeight="48dp"
-            android:contentDescription="Delete" />
+            android:padding="0dp"
+            android:src="@drawable/delete_icon" />
 
     </LinearLayout>
 </ScrollView>

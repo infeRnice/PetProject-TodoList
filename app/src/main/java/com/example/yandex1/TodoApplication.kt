@@ -7,6 +7,6 @@ import com.example.yandex1.di.RepositoryModule
 class TodoApplication : Application() {
 
     val todoComponent by lazy {
-        DaggerTodoComponent.factory().create(RepositoryModule())
+        DaggerTodoComponent.factory().create(RepositoryModule(this))
     }
 }

@@ -1,35 +1,37 @@
-        package com.example.yandex1
+package com.example.yandex1
 
-        import androidx.appcompat.app.AppCompatActivity
-        import android.os.Bundle
-        import androidx.navigation.fragment.NavHostFragment
-        import androidx.recyclerview.widget.LinearLayoutManager
-        import androidx.recyclerview.widget.RecyclerView
-        import com.example.yandex1.models.TodoItemsRepository
-        import com.example.yandex1.viewmodels.TodoViewModel
-        import javax.inject.Inject
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.fragment.NavHostFragment
+import com.example.yandex1.viewmodels.TodoViewModel
+import javax.inject.Inject
 
-        class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity() {
 
-            @Inject
-            lateinit var viewModelFactory: TodoViewModel.Factory
+    @Inject
+    lateinit var viewModelFactory: TodoViewModel.Factory
 
-            override fun onCreate(savedInstanceState: Bundle?) {
-                super.onCreate(savedInstanceState)
-                setContentView(R.layout.activity_main)
+    companion object {
+        const val RC_SIGN_IN = 812
+    }
 
-                // Получаем ссылку на Application
-                val application = getApplication() as TodoApplication
-                application.todoComponent.inject(this)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-                // Инициализируем viewModelFactory
-                val todoItemsRepository = application.todoComponent.getTodoItemsRepository()
+        // Получаем ссылку на Application
+        val application = getApplication() as TodoApplication
+        application.todoComponent.inject(this)
 
-                // Инжектируем viewModelFactory
-                viewModelFactory = TodoViewModel.Factory(todoItemsRepository)
+        // Инициализируем viewModelFactory
+        val todoItemsRepository = application.todoComponent.getTodoItemsRepository()
 
-                val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-                val navController = navHostFragment.navController
-            }
-        }
+        // Инжектируем viewModelFactory. Закомментировал используем фабрику через Dagger2
+        //viewModelFactory = TodoViewModel.Factory(todoItemsRepository)
+
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+    }
+}
 

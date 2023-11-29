@@ -1,9 +1,12 @@
 package com.example.yandex1.models
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.util.Date
 
+@Entity
 data class TodoItem(
-    val id: String = "",
+    @PrimaryKey val id: String = "",
     val text: String = "",
     val importance: Importance = Importance.NORMAL,
     val deadline: Date? = null,
