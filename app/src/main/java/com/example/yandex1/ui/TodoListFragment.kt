@@ -91,9 +91,13 @@ class TodoListFragment : Fragment() {
 
         viewModel.selectedTodoId.observe(viewLifecycleOwner) { id ->
             id?.let {
-                val action =
-                    TodoListFragmentDirections.actionTodoListFragmentToAddEditTodoFragment(id)
-                findNavController().navigate(action)
+                val navController = findNavController()
+                if (navController.currentDestination?.id == R.id.todoListFragment) {
+                    val action =
+                        TodoListFragmentDirections.actionTodoListFragmentToAddEditTodoFragment(it)
+                    navController.navigate(action)
+                    viewModel.onTodoItemNavigated() //сбросить selectedTodoId после навигации
+                }
             }
         }
 

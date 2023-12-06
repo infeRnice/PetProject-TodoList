@@ -1,15 +1,9 @@
 package com.example.yandex1.viewmodels
 
 import android.content.Intent
-import android.util.Log
 import androidx.lifecycle.*
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.example.yandex1.models.TodoItem
 import com.example.yandex1.models.TodoItemsRepository
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -48,6 +42,10 @@ class TodoViewModel(private val repository: TodoItemsRepository) : ViewModel() {
         _selectedTodoId.value = id
     }
 
+    fun onTodoItemNavigated() {
+        this._selectedTodoId.value = null
+    }
+
     fun getTodoItem(id: String): TodoItem? {
         return _todoItems.value?.find { it.id == id }
     }
@@ -61,7 +59,7 @@ class TodoViewModel(private val repository: TodoItemsRepository) : ViewModel() {
             try {
                 repository.addTodoItem(item)
                 refreshTodoItems() //update todo list
-            } catch (e:Exception) {
+            } catch (e: Exception) {
                 _showSnackbarEvent.postValue("Failed to add item: ${e.message}")
 
             }

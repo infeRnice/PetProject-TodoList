@@ -21,7 +21,7 @@
         android:ellipsize="end"
         android:maxLines="3"
         android:padding="8dp"
-        android:text="Todo Text" />
+        android:text="@string/todo_text" />
 
     <ImageView
         android:id="@+id/iv_status"

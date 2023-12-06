@@ -1,6 +1,5 @@
 package com.example.yandex1
 
-import android.graphics.Color
 import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
@@ -17,9 +16,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.yandex1.models.TodoItem
 import com.example.yandex1.ui.TodoListFragmentDirections
 import com.example.yandex1.viewmodels.TodoViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
 
 class TodoAdapter(private val viewModel: TodoViewModel) : ListAdapter<TodoItem, TodoAdapter.TodoViewHolder>(TodoDiffCallback()) {
 
@@ -43,10 +39,7 @@ class TodoAdapter(private val viewModel: TodoViewModel) : ListAdapter<TodoItem, 
                 val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     val item = getItem(position)
-                    val action =
-                        TodoListFragmentDirections.actionTodoListFragmentToAddEditTodoFragment(item.id)
-
-                    it.findNavController().navigate(action as NavDirections)
+                    viewModel.onTodoItemClicked(item.id)
                 }
             }
         }
@@ -60,7 +53,16 @@ class TodoAdapter(private val viewModel: TodoViewModel) : ListAdapter<TodoItem, 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TodoViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.todo_item, parent, false)
-        return TodoViewHolder(view)
+        return TodoViewHolder(view).apply {
+            checkBox.setOnCheckedChangeListener { _, isChecked ->
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val item = getItem(position)
+                    val updatedItem = item.copy(isDone = isChecked)
+                    viewModel.updateTodoItem(updatedItem)
+                }
+            }
+        }
     }
 
     override fun onBindViewHolder(holder: TodoViewHolder, position: Int) {
