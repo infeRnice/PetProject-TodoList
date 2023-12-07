@@ -12,16 +12,15 @@ import javax.inject.Inject
 class TodoViewModel(private val repository: TodoItemsRepository) : ViewModel() {
 
     // LiveData для списка задач
-    private val _todoItems = MutableLiveData<List<TodoItem>>()
+    //private val _todoItems = MutableLiveData<List<TodoItem>>()
     val todoItems: LiveData<List<TodoItem>> = repository.getTodoItems()
-
-
-    private val _selectedTodoId = MutableLiveData<String>()
-    val selectedTodoId: LiveData<String> get() = _selectedTodoId
-    private val _showSnackbarEvent = MutableLiveData<String>()
-    val showSnackbarEvent: LiveData<String> get() = _showSnackbarEvent
     val error: LiveData<String> = repository.error
 
+    private val _selectedTodoId = MutableLiveData<String?>()
+    val selectedTodoId: LiveData<String?> get() = _selectedTodoId
+
+    private val _showSnackbarEvent = MutableLiveData<String>()
+    val showSnackbarEvent: LiveData<String> get() = _showSnackbarEvent
 
     fun getGoogleSignInIntent(): Intent {
         return repository.getGoogleSignInIntent()
@@ -29,8 +28,11 @@ class TodoViewModel(private val repository: TodoItemsRepository) : ViewModel() {
 
     fun syncDataWithFirestore() {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.syncDataWithFirestore()
-            refreshTodoItems()
+            try {
+                repository.syncDataWithFirestore()
+            } catch (e: Exception) {
+                _showSnackbarEvent.postValue("Failed to sync: ${e.message}")
+            }
         }
     }
 
@@ -45,20 +47,15 @@ class TodoViewModel(private val repository: TodoItemsRepository) : ViewModel() {
     fun onTodoItemNavigated() {
         this._selectedTodoId.value = null
     }
-
-    fun getTodoItem(id: String): TodoItem? {
-        return _todoItems.value?.find { it.id == id }
-    }
-
-    init {
-        refreshTodoItems()
+    fun getTodoItem(id: String): LiveData<TodoItem?> {
+        return repository.getTodoItemById(id)
     }
 
     fun addTodoItem(item: TodoItem) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.addTodoItem(item)
-                refreshTodoItems() //update todo list
+
             } catch (e: Exception) {
                 _showSnackbarEvent.postValue("Failed to add item: ${e.message}")
 
@@ -71,7 +68,7 @@ class TodoViewModel(private val repository: TodoItemsRepository) : ViewModel() {
             try {
                 val updatedItem = item.copy(changeDate = Date())
                 repository.updateTodoItem(updatedItem)
-                refreshTodoItems()
+//
             } catch (e: Exception) {
                 _showSnackbarEvent.postValue("Failed to update item: ${e.message}")
             }
@@ -82,29 +79,10 @@ class TodoViewModel(private val repository: TodoItemsRepository) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repository.deleteTodoItem(item)
-                refreshTodoItems()
+//
             } catch (e: Exception) {
                 _showSnackbarEvent.postValue("Failed to delete item: ${e.message}")
             }
-        }
-    }
-
-    fun onTodoCheckedChange(id: String, isChecked: Boolean) {
-        viewModelScope.launch {
-            val newTodoItems = _todoItems.value?.map { todoItem ->
-                if (todoItem.id == id) todoItem.copy(isDone = isChecked)
-                else todoItem
-            }
-            _todoItems.value = newTodoItems.orEmpty()
-            if (newTodoItems != null) {
-                repository.updateTodoItem(newTodoItems.first { it.id == id })
-            }
-        }
-    }
-
-    private fun refreshTodoItems() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _todoItems.postValue(repository.getTodoItems().value)
         }
     }
 

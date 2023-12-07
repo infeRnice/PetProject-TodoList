@@ -7,16 +7,19 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.yandex1.models.TodoItem
+import java.util.concurrent.Flow
 
 @Dao
 interface TodoItemDao {
 
     @Query("SELECT * FROM TodoItem")
-    fun getAllTodoItem(): LiveData<List<TodoItem>>
+    fun getAllTodoItem(): kotlinx.coroutines.flow.Flow<List<TodoItem>>
 
     @Query("SELECT * FROM TodoItem")
     fun getAllTodoItemSynchronous(): List<TodoItem>
 
+    @Query("SELECT * FROM TodoItem WHERE id = :id")
+    fun getTodoItemById(id: String): LiveData<TodoItem?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertTodoItem(todoItem: TodoItem)

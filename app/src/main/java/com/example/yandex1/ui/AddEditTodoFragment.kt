@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.NavDirections
@@ -15,6 +16,7 @@ import com.example.yandex1.databinding.FragmentAddEditTodoBinding
 import com.example.yandex1.models.Importance
 import com.example.yandex1.models.TodoItem
 import com.example.yandex1.viewmodels.TodoViewModel
+import com.google.firebase.auth.ktx.oAuthProvider
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,18 +38,43 @@ class AddEditTodoFragment : Fragment() {
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?  ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Получение todoId из аргументов
+        val todoId = AddEditTodoFragmentArgs.fromBundle(requireArguments()).todoId
+        // Загрузка данных задачи, если todoId не null
+        val importanceValues = arrayOf(
+            getString(R.string.importance_low),
+            getString(R.string.importance_normal),
+            getString(R.string.importance_high)
+        )
+
+        val adapter =
+            ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, importanceValues)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+        binding.spinnerImportance.adapter = adapter
+
+        todoId?.let { id ->
+            viewModel.getTodoItem(id).observe(viewLifecycleOwner) { todoItem ->
+                currentItem = todoItem
+                todoItem?.let { item ->
+                    //update UI here
+                    binding.etDescription.setText(item.text)
+
+                    currentItem?.let {
+                        val position = importanceValues.indexOf(item.importance.toString())
+                        binding.spinnerImportance.setSelection(position)
+                    }
+                }
+            }
+        }
 
         // Initialize UI components
         val editTextTodo = binding.etDescription
 
         val spinnerImportance = binding.spinnerImportance
 
-        // Handle passed arguments (todoId)
-        currentItem = args.todoId?.let {
-            viewModel.getTodoItem(it)
-        }
         binding.etDescription.setText(currentItem?.text)
 
         //Устанавливаем начальное значение для spinnerImportance на основе текущего элемента
@@ -74,8 +101,12 @@ class AddEditTodoFragment : Fragment() {
                 val todoItem = currentItem?.copy(
                     text = text,
                     importance = importance,
-                    deadline = if (binding.switchDeadline.isChecked) SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(binding.deadlineText.text.toString())
-                else null) ?: TodoItem(
+                    deadline = if (binding.switchDeadline.isChecked) SimpleDateFormat(
+                        "dd/MM/yyyy",
+                        Locale.getDefault()
+                    ).parse(binding.deadlineText.text.toString())
+                    else null
+                ) ?: TodoItem(
                     id = UUID.randomUUID().toString(),
                     text = text,
                     importance = importance,
@@ -88,7 +119,8 @@ class AddEditTodoFragment : Fragment() {
                 } else {
                     viewModel.addTodoItem(todoItem)
                 }
-                val action = AddEditTodoFragmentDirections.actionAddEditTodoFragmentToTodoListFragment()
+                val action =
+                    AddEditTodoFragmentDirections.actionAddEditTodoFragmentToTodoListFragment()
                 findNavController().navigate(action)
             }
         }
@@ -96,17 +128,15 @@ class AddEditTodoFragment : Fragment() {
         binding.btnDelete.setOnClickListener {
             currentItem?.let {
                 viewModel.deleteTodoItem(it)
-                val action = AddEditTodoFragmentDirections.actionAddEditTodoFragmentToTodoListFragment()
+                val action =
+                    AddEditTodoFragmentDirections.actionAddEditTodoFragmentToTodoListFragment()
                 findNavController().navigate(action)
-
             }
-
         }
 
         binding.btnClose.setOnClickListener {
             findNavController().navigate(R.id.action_addEditTodoFragment_to_todoListFragment)
         }
-
 
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigate(R.id.action_addEditTodoFragment_to_todoListFragment)

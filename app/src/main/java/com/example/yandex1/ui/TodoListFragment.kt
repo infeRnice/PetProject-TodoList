@@ -84,20 +84,14 @@ class TodoListFragment : Fragment() {
         // Set OnClickListener to FloatingActionButton
         val fab = view.findViewById<FloatingActionButton>(R.id.addTodoButton)
         fab.setOnClickListener {
-            val action =
-                TodoListFragmentDirections.actionTodoListFragmentToAddEditTodoFragment(null)
-            findNavController().navigate(action)
+            findNavController().navigate(TodoListFragmentDirections.actionTodoListFragmentToAddEditTodoFragment(null))
         }
 
         viewModel.selectedTodoId.observe(viewLifecycleOwner) { id ->
             id?.let {
-                val navController = findNavController()
-                if (navController.currentDestination?.id == R.id.todoListFragment) {
-                    val action =
-                        TodoListFragmentDirections.actionTodoListFragmentToAddEditTodoFragment(it)
-                    navController.navigate(action)
-                    viewModel.onTodoItemNavigated() //сбросить selectedTodoId после навигации
-                }
+                findNavController().navigate(TodoListFragmentDirections.actionTodoListFragmentToAddEditTodoFragment(it))
+                viewModel.onTodoItemNavigated() //сбросить selectedTodoId после навигации
+
             }
         }
 

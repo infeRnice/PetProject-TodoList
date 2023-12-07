@@ -10,6 +10,8 @@ import android.util.Log
 import kotlin.collections.*
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.yandex1.database.TodoDatabase
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -19,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 class TodoItemsRepository(private val context: Context) {
@@ -38,6 +41,9 @@ class TodoItemsRepository(private val context: Context) {
     private val todoDao = TodoDatabase.getDatabase(context).todoDao()
 
     init {
+        CoroutineScope(Dispatchers.IO).launch {
+            syncDataWithFirestore()
+        }
         // Для мониторинга сети
         connectivityManager.registerNetworkCallback(
             NetworkRequest.Builder().build(),
@@ -47,7 +53,6 @@ class TodoItemsRepository(private val context: Context) {
 
     //Синхронизация с Firestore
     suspend fun syncDataWithFirestore() = withContext(Dispatchers.IO) {
-        //CoroutineScope(Dispatchers.IO).launch {
             try {
                 fetchDataFromFirestore()
             } catch (e: Exception) {
@@ -82,17 +87,24 @@ class TodoItemsRepository(private val context: Context) {
         }
     }
 
-    private suspend fun fetchDataFromFirestore() = withContext(Dispatchers.IO) {
-        auth.currentUser?.let { user ->
-            todoCollection.whereEqualTo("userId", user.uid).get().addOnSuccessListener { querySnapshot ->
-                querySnapshot.documents.forEach { document ->
-                    document.toObject(TodoItem::class.java)?.let { todoDao.insertTodoItem(it) }
+        private suspend fun fetchDataFromFirestore() = withContext(Dispatchers.IO) {
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                Log.d("Repository", "User authenticated: ${currentUser.uid}")
+                auth.currentUser?.let { user ->
+                    todoCollection.whereEqualTo("userId", user.uid).get().addOnSuccessListener { querySnapshot ->
+                        querySnapshot.documents.forEach { document ->
+                            document.toObject(TodoItem::class.java)?.let { todoDao.insertTodoItem(it) }
+                        }
+                    }.addOnFailureListener { e ->
+                        _error.postValue("Error fetching data: ${e.localizedMessage}")
+                    }
                 }
-            }.addOnFailureListener { e ->
-                _error.postValue("Error fetching data: ${e.localizedMessage}")
+            } else {
+                Log.d("Repository", "User is not authenticated")
+                _error.postValue("User not authenticated")
             }
-        } ?: _error.postValue("User not authenticated")
-    }
+        }
         /*if (user != null) {
             todoCollection.addSnapshotListener { snapshots, e ->
                 if (e != null) {
@@ -128,25 +140,29 @@ class TodoItemsRepository(private val context: Context) {
         }
     }*/
 
+    fun getTodoItemById(id: String): LiveData<TodoItem?> {
+        return todoDao.getTodoItemById(id)
+    }
+
     fun getTodoItems(): LiveData<List<TodoItem>> {
         Log.d("TodoListFragment", "getTodoItems() called")
-        return todoDao.getAllTodoItem()
+        return todoDao.getAllTodoItem().asLiveData()
     }
 
     suspend fun addTodoItem(item: TodoItem) = withContext(Dispatchers.IO) {
         Log.d("FirestoreAdd", "Adding todo item: ${item.id}")
-        todoCollection.document(item.id).set(item).await()
         todoDao.insertTodoItem(item)
+        todoCollection.document(item.id).set(item).await()
     }
 
     suspend fun deleteTodoItem(item: TodoItem) = withContext(Dispatchers.IO) {
-        todoCollection.document(item.id).delete().await()
         todoDao.deleteTodoItem(item.id)
+        todoCollection.document(item.id).set(item).await()
     }
 
     suspend fun updateTodoItem(updatedItem: TodoItem) = withContext(Dispatchers.IO) {
-        todoCollection.document(updatedItem.id).set(updatedItem).await()
         todoDao.updateTodoItem(updatedItem)
+        todoCollection.document(updatedItem.id).set(updatedItem).await()
     }
     fun onCleared() {
         connectivityManager.unregisterNetworkCallback(networkCallback)
@@ -158,17 +174,6 @@ class TodoItemsRepository(private val context: Context) {
             CoroutineScope(Dispatchers.IO).launch {
                 syncDataWithFirestore()
             }
-            //Consider triggering data sync here
-            /*object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    super.onAvailable(network)
-                    fetchDataFromFirestore()
-                }
-
-                override fun onLost(network: Network) {
-                    _error.postValue("No internet connection")
-                }
-            }*/
         }
 
         override fun onLost(network: Network) {

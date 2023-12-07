@@ -10,6 +10,9 @@
     <string name="delete_button">Delete</string>
     <string name="sign_in_with_google">Sign In with Google</string>
     <string name="todo_text">Todo Text</string>
+    <string name="importance_low">Low</string>
+    <string name="importance_normal">Normal</string>
+    <string name="importance_high">High</string>
     <string-array name="priority_array">
         <item>Low</item>
         <item>Medium</item>

@@ -17,7 +17,8 @@ import com.example.yandex1.models.TodoItem
 import com.example.yandex1.ui.TodoListFragmentDirections
 import com.example.yandex1.viewmodels.TodoViewModel
 
-class TodoAdapter(private val viewModel: TodoViewModel) : ListAdapter<TodoItem, TodoAdapter.TodoViewHolder>(TodoDiffCallback()) {
+class TodoAdapter(private val viewModel: TodoViewModel) :
+    ListAdapter<TodoItem, TodoAdapter.TodoViewHolder>(TodoDiffCallback()) {
 
     inner class TodoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val ivStatus: ImageView = itemView.findViewById(R.id.iv_status)
@@ -48,6 +49,7 @@ class TodoAdapter(private val viewModel: TodoViewModel) : ListAdapter<TodoItem, 
     class TodoDiffCallback : DiffUtil.ItemCallback<TodoItem>() {
         override fun areItemsTheSame(oldItem: TodoItem, newItem: TodoItem) =
             oldItem.id == newItem.id
+
         override fun areContentsTheSame(oldItem: TodoItem, newItem: TodoItem) = oldItem == newItem
     }
 
@@ -69,21 +71,18 @@ class TodoAdapter(private val viewModel: TodoViewModel) : ListAdapter<TodoItem, 
         val item = getItem(position)
         holder.apply {
             tvTodoText.text = item.text
+            checkBox.setOnCheckedChangeListener(null)
             checkBox.isChecked = item.isDone
             updateTextViewAppearance(item.isDone, tvTodoText)
 
-            checkBox.apply {
-                // Устанавливаем нужный дроубл в зависимости от состояния isChecked
-                setOnCheckedChangeListener { _, isChecked ->
-                    updateTextViewAppearance(isChecked, tvTodoText)
-                    // При изменении состояния чекбокса, меняем дроубл
-
-                    val updatedItem = item.copy(isDone = isChecked)  //Update item status
-                    viewModel.updateTodoItem(updatedItem)
-
-                }
+            checkBox.setOnCheckedChangeListener { _, isChecked ->
+                updateTextViewAppearance(isChecked, tvTodoText)
+                // При изменении состояния чекбокса, меняем дроубл
+                val updatedItem = item.copy(isDone = isChecked)  //Update item status
+                viewModel.updateTodoItem(updatedItem)
             }
         }
     }
 }
+
 
