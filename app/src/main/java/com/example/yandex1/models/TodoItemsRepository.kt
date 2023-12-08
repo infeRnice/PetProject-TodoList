@@ -21,22 +21,30 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import java.util.Date
 
 class TodoItemsRepository(private val context: Context) {
 
     private val _error = MutableLiveData<String>()
+
     //val error: LiveData<String> get() = _error
     val error: LiveData<String> = _error
+
     // Использование сервиса подключения
-    private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
     // Инициализация обратного вызова сети
     private val networkCallback = NetworkCallbackImpl()
-     //Firestore
+
+    //Firestore
     private val db = FirebaseFirestore.getInstance()
     private val todoCollection = db.collection("todos")
     private val auth = FirebaseAuth.getInstance()
+
     //Room database
     private val todoDao = TodoDatabase.getDatabase(context).todoDao()
 
@@ -53,18 +61,34 @@ class TodoItemsRepository(private val context: Context) {
 
     //Синхронизация с Firestore
     suspend fun syncDataWithFirestore() = withContext(Dispatchers.IO) {
-            try {
+        try {
+            // Получаем последнюю временную метку из Room
+            val lastLocalChangeDate = todoDao.getMaxChangeDate() ?: Date(0)
+            // Получаем последнюю временную метку из Firestore
+            val lastRemoteChangeDate = getLastRemoteChangeDate() ?: Date(0)
+            //сравниваем
+            if (lastRemoteChangeDate.after(lastLocalChangeDate)) {
                 fetchDataFromFirestore()
-            } catch (e: Exception) {
-                _error.postValue("Failed to synchronize with Firestore: ${e.message}")
             }
+        } catch (e: Exception) {
+            _error.postValue("Failed to synchronize with Firestore: ${e.message}")
+        }
+    }
 
+    private suspend fun getLastRemoteChangeDate(): Date? {
+        val lastRemoteUpdate = db.collection("metadata").document("lastUpdate").get().await()
+        return lastRemoteUpdate.getDate("timestamp")
+    }
+
+    private suspend fun updateLastChangeTimestampInFirestore() {
+        val timestamp = hashMapOf("timestamp" to FieldValue.serverTimestamp())
+        db.collection("metadata").document("lastUpdate").set(timestamp).await()
     }
 
     fun getGoogleSignInIntent(): Intent {
         //Start Google sign-in process
         val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("1078527184911-ne3l9r892vokqjchttememr43rjcd6ht.apps.googleusercontent.com")
+            .requestIdToken("1078527184911-30ia1m86q9b60a25170trsele44gml2m.apps.googleusercontent.com")
             .requestEmail()
             .build()
 
@@ -80,6 +104,7 @@ class TodoItemsRepository(private val context: Context) {
             localItems.forEach { item ->
                 try {
                     todoCollection.document(item.id).set(item).await()
+                    updateLastChangeTimestampInFirestore()
                 } catch (e: Exception) {
                     _error.postValue("Failed to push item to Firestore: ${e.message}")
                 }
@@ -87,58 +112,37 @@ class TodoItemsRepository(private val context: Context) {
         }
     }
 
-        private suspend fun fetchDataFromFirestore() = withContext(Dispatchers.IO) {
-            val currentUser = auth.currentUser
-            if (currentUser != null) {
-                Log.d("Repository", "User authenticated: ${currentUser.uid}")
-                auth.currentUser?.let { user ->
-                    todoCollection.whereEqualTo("userId", user.uid).get().addOnSuccessListener { querySnapshot ->
+    private suspend fun fetchDataFromFirestore() = withContext(Dispatchers.IO) {
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            Log.d("Repository", "User authenticated: ${currentUser.uid}")
+            auth.currentUser?.let { user ->
+                todoCollection.whereEqualTo("userId", user.uid).get()
+                    .addOnSuccessListener { querySnapshot ->
                         querySnapshot.documents.forEach { document ->
-                            document.toObject(TodoItem::class.java)?.let { todoDao.insertTodoItem(it) }
-                        }
-                    }.addOnFailureListener { e ->
-                        _error.postValue("Error fetching data: ${e.localizedMessage}")
-                    }
-                }
-            } else {
-                Log.d("Repository", "User is not authenticated")
-                _error.postValue("User not authenticated")
-            }
-        }
-        /*if (user != null) {
-            todoCollection.addSnapshotListener { snapshots, e ->
-                if (e != null) {
-                    Log.e("FirestoreError", "Error fetching data: ", e)
-                    _error.postValue(e.localizedMessage ?: "Oops")
-                    return@addSnapshotListener
-                }
-
-                snapshots?.let { snapshot ->
-                    for (document in snapshot.documents) {
-                        try {
-                            val item = document.toObject(TodoItem::class.java)
-                            item?.let {
-                                CoroutineScope(Dispatchers.IO).launch {
+                            val todoItem = document.toObject(TodoItem::class.java)
+                            todoItem?.let { item ->
+                                //проверяем, существует ли запись в Room
+                                val existingItem = todoDao.getTodoItemById(item.id)
+                                if (existingItem == null) {
+                                    //если записи нет, добавляем
                                     todoDao.insertTodoItem(item)
-                                    Log.d(
-                                        "RoomData",
-                                        "Inserted item with ID: ${item.id}"
-                                    )
+                                } else {
+                                    //if todoItem exists then update it
+                                    todoDao.updateTodoItem(item)
                                 }
                             }
-                        } catch (ex: Exception) {
-                            Log.e(
-                                "FirestoreError",
-                                "Error parsing document: ${ex.message}, ex"
-                            )
                         }
-                    }
+                    }.addOnFailureListener { e ->
+                    _error.postValue("Error fetching data: ${e.localizedMessage}")
                 }
+                todoDao.getMaxChangeDate() ?: Date(0)
             }
         } else {
+            Log.d("Repository", "User is not authenticated")
             _error.postValue("User not authenticated")
         }
-    }*/
+    }
 
     fun getTodoItemById(id: String): LiveData<TodoItem?> {
         return todoDao.getTodoItemById(id)
@@ -151,8 +155,9 @@ class TodoItemsRepository(private val context: Context) {
 
     suspend fun addTodoItem(item: TodoItem) = withContext(Dispatchers.IO) {
         Log.d("FirestoreAdd", "Adding todo item: ${item.id}")
-        todoDao.insertTodoItem(item)
-        todoCollection.document(item.id).set(item).await()
+        val newItem = item.copy(changeDate = Date())
+        todoDao.insertTodoItem(newItem)
+        todoCollection.document(newItem.id).set(newItem).await()
     }
 
     suspend fun deleteTodoItem(item: TodoItem) = withContext(Dispatchers.IO) {
@@ -160,10 +165,12 @@ class TodoItemsRepository(private val context: Context) {
         todoCollection.document(item.id).set(item).await()
     }
 
-    suspend fun updateTodoItem(updatedItem: TodoItem) = withContext(Dispatchers.IO) {
+    suspend fun updateTodoItem(item: TodoItem) = withContext(Dispatchers.IO) {
+        val updatedItem = item.copy(changeDate = Date())
         todoDao.updateTodoItem(updatedItem)
         todoCollection.document(updatedItem.id).set(updatedItem).await()
     }
+
     fun onCleared() {
         connectivityManager.unregisterNetworkCallback(networkCallback)
     }
@@ -181,3 +188,38 @@ class TodoItemsRepository(private val context: Context) {
         }
     }
 }
+
+/*if (user != null) {
+    todoCollection.addSnapshotListener { snapshots, e ->
+        if (e != null) {
+            Log.e("FirestoreError", "Error fetching data: ", e)
+            _error.postValue(e.localizedMessage ?: "Oops")
+            return@addSnapshotListener
+        }
+
+        snapshots?.let { snapshot ->
+            for (document in snapshot.documents) {
+                try {
+                    val item = document.toObject(TodoItem::class.java)
+                    item?.let {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            todoDao.insertTodoItem(item)
+                            Log.d(
+                                "RoomData",
+                                "Inserted item with ID: ${item.id}"
+                            )
+                        }
+                    }
+                } catch (ex: Exception) {
+                    Log.e(
+                        "FirestoreError",
+                        "Error parsing document: ${ex.message}, ex"
+                    )
+                }
+            }
+        }
+    }
+} else {
+    _error.postValue("User not authenticated")
+}
+}*/
